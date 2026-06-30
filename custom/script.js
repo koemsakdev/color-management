@@ -10,6 +10,7 @@ const iconAction = document.querySelector("#icon-action");
 
 const titleKh = document.querySelector("#titleKh");
 const titleEn = document.querySelector("#titleEn");
+const colorHexDisplay = document.querySelector("#colorHexDisplay");
 
 
 
@@ -27,21 +28,14 @@ saveBtn.addEventListener("click", async function () {
 
     // Validate the input field first
     if (titleEn.value.length == 0 || titleKh.value.length == 0) {
-        setTimeout(function () {
-            saveBtn.disabled = false;
-            saveBtn.classList.remove("opacity-50", "cursor-not-allowed");
-            saveTxt.textContent = "Save";
-            iconAction.textContent = "save";
-            iconAction.classList.remove("animate-spin");
-            showToast("Please enter the value in both title English and ខ្មែរ", "error");
-        }, 2000)
-
-        
+        handleDelay("Save", "save")
         return;
     }
 
     try {
         await new Promise(resolve => setTimeout(resolve, 2000));
+        const payload = handleReformatData(colorHexDisplay.value, titleKh.value, titleEn.value, new Date().toISOString());
+        saveColorToStorage(payload);
     } catch (error) {
         console.error("Failed to deactivate:", error);
     } finally {
@@ -51,6 +45,8 @@ saveBtn.addEventListener("click", async function () {
         iconAction.textContent = "save";
         iconAction.classList.remove("animate-spin");
         dialog.close();
+        showToast("Color save success", "success");
+        handleRenderColor();
     }
 })
 
@@ -67,25 +63,24 @@ function handleSaveColor() {
 }
 
 function handleRenderColor() {
-    const colors = localStorage.getItem("colors") ?? [];
+    const colors = JSON.parse(localStorage.getItem("colors")) ?? [];
     if (colors.length == 0) {
         emptyState.classList.remove("hidden")
     } else {
-        emptyState.classList.add("hidden");
-
+        emptyState.classList.add("hidden");     
+        output.innerHTML = '';   
         colors.forEach((color) => {
-            output.appendChild(
+            const div = document.createElement("div");
+            div.className = "flex items-center justify-between shadow-sm rounded-xl px-4 py-3";
+            div.innerHTML =
                 `
-                <div
-                    class="flex items-center justify-between shadow-sm rounded-xl px-4 py-3"
-                >
                     <div class="flex items-center gap-3">
                         <div
-                        class="p-5 bg-blue-500 rounded-full border border-slate-500"
+                        class="p-5 bg-[${color.hex}] rounded-full border border-slate-500"
                         ></div>
                         <div class="flex flex-col">
-                            <span class="text-sm">Blue</span>
-                            <span class="text-sm">ខៀវ</span>
+                            <span class="text-sm">${color.titleEn}</span>
+                            <span class="text-sm">${color.titleKh}</span>
                         </div>
                     </div>
                     <div class="flex items-center gap-1">
@@ -97,14 +92,13 @@ function handleRenderColor() {
                         <button
                             class="bg-rose-50 hover:bg-rose-100 text-rose-500 hover:text-rose-600 px-1.5 py-1 text-xs rounded-full cursor-pointer"
                         >
-                            span class="material-icons"> delete_forever </span>
+                            <span class="material-icons"> delete_forever </span>
                         </button>
                     </div>
-                </div>
             `
-            );
+            ;
+            output.appendChild(div);
         })
-
     }
 }
 
@@ -166,6 +160,17 @@ const showToast = (message, type = 'success') => {
         });
     }, 3000);
 };
+
+function handleDelay(text, icon) {
+    setTimeout(function () {
+        saveBtn.disabled = false;
+        saveBtn.classList.remove("opacity-50", "cursor-not-allowed");
+        saveTxt.textContent = text;
+        iconAction.textContent = icon;
+        iconAction.classList.remove("animate-spin");
+        showToast("Please enter the value in both title English and ខ្មែរ", "error");
+    }, 2000)
+}
 
 handleChangeColor(colorChange.value);
 handleRenderColor();
